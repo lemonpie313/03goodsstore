@@ -17,6 +17,7 @@ const productsSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
+    default: 'FOR_SALE',
   },
   password: {
     type: String,

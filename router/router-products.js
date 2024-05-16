@@ -9,7 +9,11 @@ const createProductSchema = Joi.object({
   name: Joi.string().min(1).max(50).required(),
   description: Joi.string().min(1).max(200).required(),
   manager: Joi.string().min(1).max(50).required(),
-  password: Joi.string().min(4).max(15).required(),
+  password: Joi.string()
+    .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$'))
+    .min(4)
+    .max(15)
+    .required(),
 });
 
 const deleteProductSchema = Joi.object({
@@ -20,8 +24,8 @@ const editProductSchema = Joi.object({
   name: Joi.string().min(1).max(50),
   description: Joi.string().min(1).max(200),
   manager: Joi.string().min(1).max(50),
-  status: Joi.string(),
-  password: Joi.string().required(),
+  status: Joi.boolean(),
+  password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
 });
 
 //등록
@@ -29,14 +33,12 @@ router.post('/', async (req, res) => {
   try {
     const product = await createProductSchema.validateAsync(req.body);
     const { name, description, manager, password } = product;
-    const status = 'FOR_SALE';
     const createdAt = new Date();
     const updatedAt = createdAt;
     const newProduct = new Products({
       name,
       description,
       manager,
-      status,
       password,
       createdAt,
       updatedAt,
@@ -154,12 +156,16 @@ router.patch('/:productId', async (req, res) => {
     if (manager) {
       productItem.manager = manager;
     }
-    if (status) {
-      productItem.status = status;
+    if (status != undefined) {
+      productItem.status = status ? 'FOR_SALE' : 'SOLD_OUT';
     }
 
     await productItem.save();
-    return res.status(200).send('저장완료');
+    return res.status(200).send({
+      status: 200,
+      message: '상품 수정에 성공했습니다.',
+      data: productItem,
+    });
   } catch (error) {
     console.error(error);
     if (error.name === 'ValidationError') {
@@ -189,10 +195,16 @@ router.delete('/:productId', async (req, res) => {
 
     await productItem.deleteOne({ _id: editId }).exec();
 
-    return res.status(200).send('삭제완료');
+    return res.status(200).send({
+      status: 200,
+      message: '상품 삭제에 성공했습니다.',
+      data: productItem,
+    });
   } catch (error) {
     console.error(error);
-    if (error.name === 'ValidationError') {
+    if (error.name === 'CastError') {
+      return res.status(400).json({ errorMessage: '존재하지 않는 상품입니다' });
+    } else if (error.name === 'ValidationError') {
       const errorProduct = req.body;
       if (!errorProduct.password) {
         return res.status(400).json('비번 입력X');
