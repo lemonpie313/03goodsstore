@@ -1,5 +1,9 @@
 import express from 'express';
 import Products from '../schemas/schemas-products.js';
+import {
+  hashedPassword,
+  compareHashedPassword,
+} from '../crypto/crypto-password.js';
 import Joi from 'joi';
 
 const router = express.Router();
@@ -10,10 +14,11 @@ const createProductSchema = Joi.object({
   description: Joi.string().required(),
   manager: Joi.string().required(),
   password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
+  salt: Joi.string(),
 });
 
 const deleteProductSchema = Joi.object({
-  password: Joi.string().required(),
+  password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
 });
 
 const editProductSchema = Joi.object({
@@ -28,7 +33,8 @@ const editProductSchema = Joi.object({
 router.post('/', async (req, res) => {
   try {
     const product = await createProductSchema.validateAsync(req.body);
-    const { name, description, manager, password } = product;
+    const { name, description, manager, password: plainPassword } = product;
+    const { password, salt } = await hashedPassword(plainPassword);
     const createdAt = new Date();
     const updatedAt = createdAt;
     const newProduct = new Products({
@@ -36,16 +42,27 @@ router.post('/', async (req, res) => {
       description,
       manager,
       password,
+      salt,
       createdAt,
       updatedAt,
     });
 
     await newProduct.save();
 
+    const showProducts = {
+      id: newProduct._id,
+      name: newProduct.name,
+      description: newProduct.description,
+      manager: newProduct.manager,
+      status: newProduct.status,
+      createdAt: newProduct.createdAt,
+      updatedAt: newProduct.updatedAt,
+    };
+
     return res.status(200).json({
       status: 201,
       message: '상품 생성에 성공했습니다.',
-      data: newProduct,
+      data: showProducts,
     });
   } catch (error) {
     console.error(error);
@@ -144,14 +161,26 @@ router.patch('/:productId', async (req, res) => {
   const editId = req.params.productId;
   try {
     const product = await editProductSchema.validateAsync(req.body);
-    const { name, description, manager, status, password } = product;
+    const {
+      name,
+      description,
+      manager,
+      status,
+      password: plainPassword,
+    } = product;
 
     const productItem = await Products.findById(editId).exec();
+
     if (!productItem) {
       return res
         .status(404)
         .json({ status: 404, errorMessage: '존재하지 않는 상품입니다' });
-    } else if (password != productItem.password) {
+    }
+
+    const salt = productItem.salt;
+    const password = await compareHashedPassword(plainPassword, salt);
+
+    if (password != productItem.password) {
       return res
         .status(401)
         .json({ status: 401, errorMessage: '비밀번호가 일치하지 않습니다' });
@@ -207,14 +236,20 @@ router.delete('/:productId', async (req, res) => {
   try {
     const editId = req.params.productId;
     const deleteProduct = await deleteProductSchema.validateAsync(req.body);
-    const { password } = deleteProduct;
+    const { password: plainPassword } = deleteProduct;
 
     const productItem = await Products.findById(editId).exec();
+
     if (!productItem) {
       return res
         .status(404)
         .json({ status: 404, errorMessage: '존재하지 않는 상품입니다' });
-    } else if (password != productItem.password) {
+    }
+
+    const salt = productItem.salt;
+    const password = await compareHashedPassword(plainPassword, salt);
+
+    if (password != productItem.password) {
       return res
         .status(401)
         .json({ status: 401, errorMessage: '비밀번호가 일치하지 않습니다.' });

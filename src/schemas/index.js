@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 //환경변수
 import dotenv from 'dotenv';
-dotenv.config({path: '../.env'});
+dotenv.config({ path: '../.env' });
 
 const connect = () => {
   mongoose
