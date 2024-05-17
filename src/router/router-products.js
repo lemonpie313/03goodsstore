@@ -17,7 +17,7 @@ router.post('/', async (req, res, next) => {
   try {
     const product = await createProductSchema.validateAsync(req.body);
     const { name, description, manager, password: plainPassword } = product;
-    
+
     const productsAll = await Products.find().exec();
     const productsName = productsAll.map((cur) => {
       return cur.name;
@@ -25,7 +25,6 @@ router.post('/', async (req, res, next) => {
     if (productsName.includes(name)) {
       throw new SyntaxError('이미 존재하는 상품입니다.');
     }
-
 
     const { password, salt } = await hashedPassword(plainPassword);
     const createdAt = new Date();
@@ -154,7 +153,9 @@ router.patch('/:productId', async (req, res, next) => {
     }
     if (status) {
       if (status != 'FOR_SALE' && status != 'SOLD_OUT') {
-        throw new SyntaxError('상품 상태는 [FOR_SALE,SOLD_OUT] 중 하나여야 합니다.');
+        throw new SyntaxError(
+          '상품 상태는 [FOR_SALE,SOLD_OUT] 중 하나여야 합니다.'
+        );
       }
       productItem.status = status;
     }

@@ -1,13 +1,11 @@
 import mongoose from 'mongoose';
 
-//환경변수
-import dotenv from 'dotenv';
-dotenv.config({ path: '../.env' });
+import { MONGODB_URL, MONGODB_NAME } from '../constants/env.constant.js';
 
 const connect = () => {
   mongoose
-    .connect(process.env.MongoDBSite, {
-      dbName: '03goodsstore',
+    .connect(MONGODB_URL, {
+      dbName: MONGODB_NAME,
     })
     .catch((err) => console.log(err))
     .then(() => console.log('몽고디비 연결 성공'));

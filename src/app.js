@@ -5,11 +5,9 @@ import connect from './schemas/index.js';
 import ErrorHandlerMiddleware from './middlewares/error-handler.middleware.js';
 
 // 환경변수
-import dotenv from 'dotenv';
-dotenv.config();
+import { SERVER_PORT } from './constants/env.constant.js';
 
 const app = express();
-const PORT = 3000;
 
 //MongoDB 연결
 connect();
@@ -29,6 +27,6 @@ app.use('/products', [productsRouter]);
 app.use(ErrorHandlerMiddleware);
 
 // 포트 열기
-app.listen(PORT, () => {
-  console.log(PORT, '포트로 서버가 열렸어요!');
+app.listen(SERVER_PORT, () => {
+  console.log(SERVER_PORT, '포트로 서버가 열렸어요!');
 });
