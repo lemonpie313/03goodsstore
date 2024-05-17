@@ -2,6 +2,7 @@
 import express from 'express';
 import productsRouter from './router/router-products.js';
 import connect from './schemas/index.js';
+import ErrorHandlerMiddleware from './middlewares/error-handler.middleware.js';
 
 // 환경변수
 import dotenv from 'dotenv';
@@ -23,6 +24,9 @@ app.get('/', (req, res) => {
 
 //router-products
 app.use('/products', [productsRouter]);
+
+//에러핸들러
+app.use(ErrorHandlerMiddleware);
 
 // 포트 열기
 app.listen(PORT, () => {

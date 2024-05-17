@@ -4,33 +4,16 @@ import {
   hashedPassword,
   compareHashedPassword,
 } from '../crypto/crypto-password.js';
-import Joi from 'joi';
+import {
+  createProductSchema,
+  deleteProductSchema,
+  editProductSchema,
+} from './joi-products.js';
 
 const router = express.Router();
 
-//joi 유효성검사
-const createProductSchema = Joi.object({
-  name: Joi.string().required(),
-  description: Joi.string().required(),
-  manager: Joi.string().required(),
-  password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
-  salt: Joi.string(),
-});
-
-const deleteProductSchema = Joi.object({
-  password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
-});
-
-const editProductSchema = Joi.object({
-  name: Joi.string(),
-  description: Joi.string(),
-  manager: Joi.string(),
-  status: Joi.string(),
-  password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
-});
-
 //등록
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
   try {
     const product = await createProductSchema.validateAsync(req.body);
     const { name, description, manager, password: plainPassword } = product;
@@ -65,30 +48,12 @@ router.post('/', async (req, res) => {
       data: showProducts,
     });
   } catch (error) {
-    console.error(error);
-    const errorProduct = req.body;
-    const productsAll = await Products.find().exec();
-
-    if (!errorProduct.name) {
-      return res.status(400).json({ errorMessage: '이름을 입력하세요' });
-    } else if (productsAll.includes({ name: errorProduct.name })) {
-      return res.status(400).json({ errorMessage: '이미 등록 된 상품입니다.' });
-    } else if (!errorProduct.description) {
-      return res.status(400).json({ errorMessage: '상세설명을 입력하세요' });
-    } else if (!errorProduct.manager) {
-      return res.status(400).json({ errorMessage: '관리자를 입력하세요' });
-    } else if (!errorProduct.password) {
-      return res.status(400).json({ errorMessage: '비밀번호를 입력하세요' });
-    }
-    return res.status(500).json({
-      errorMessage:
-        '예상치 못한 에러가 발생했습니다. 관리자에게 문의해 주세요.',
-    });
+    next(error);
   }
 });
 
 //조회
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const productsAll = await Products.find().exec();
     const showProducts = productsAll
@@ -111,21 +76,17 @@ router.get('/', async (req, res) => {
       data: showProducts,
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      errorMessage:
-        '예상치 못한 에러가 발생했습니다. 관리자에게 문의해 주세요.',
-    });
+    next(error);
   }
 });
 
 //상세조회
-router.get('/:productId', async (req, res) => {
+router.get('/:productId', async (req, res, next) => {
   const productId = req.params.productId;
   try {
     const productItem = await Products.findById(productId).exec();
     if (!productItem) {
-      return res.status(400).json({ errorMessage: '존재하지 않는 상품입니다' });
+      throw new SyntaxError('존재하지 않는 상품입니다.');
     }
     const showProductItem = {
       id: productItem._id,
@@ -142,22 +103,12 @@ router.get('/:productId', async (req, res) => {
       data: showProductItem,
     });
   } catch (error) {
-    console.error(error);
-    if (error.name === 'CastError') {
-      return res
-        .status(404)
-        .json({ status: 404, errorMessage: '존재하지 않는 상품입니다' });
-    }
-    return res.status(500).json({
-      status: 500,
-      errorMessage:
-        '예상치 못한 에러가 발생했습니다. 관리자에게 문의해 주세요.',
-    });
+    next(error);
   }
 });
 
 //수정
-router.patch('/:productId', async (req, res) => {
+router.patch('/:productId', async (req, res, next) => {
   const editId = req.params.productId;
   try {
     const product = await editProductSchema.validateAsync(req.body);
@@ -172,18 +123,14 @@ router.patch('/:productId', async (req, res) => {
     const productItem = await Products.findById(editId).exec();
 
     if (!productItem) {
-      return res
-        .status(404)
-        .json({ status: 404, errorMessage: '존재하지 않는 상품입니다' });
+      throw new SyntaxError('존재하지 않는 상품입니다.');
     }
 
     const salt = productItem.salt;
     const password = await compareHashedPassword(plainPassword, salt);
 
     if (password != productItem.password) {
-      return res
-        .status(401)
-        .json({ status: 401, errorMessage: '비밀번호가 일치하지 않습니다' });
+      throw new SyntaxError('비밀번호가 일치하지 않습니다.');
     }
 
     if (name) {
@@ -197,10 +144,7 @@ router.patch('/:productId', async (req, res) => {
     }
     if (status) {
       if (status != 'FOR_SALE' && status != 'SOLD_OUT') {
-        return res.status(400).json({
-          status: 400,
-          errorMessage: '상품 상태는 [FOR_SALE,SOLD_OUT] 중 하나여야 합니다.',
-        });
+        throw new SyntaxError('상품 상태는 [FOR_SALE,SOLD_OUT] 중 하나여야 합니다.');
       }
       productItem.status = status;
     }
@@ -214,25 +158,12 @@ router.patch('/:productId', async (req, res) => {
       data: productItem,
     });
   } catch (error) {
-    console.error(error);
-    const errorProduct = req.body;
-    if (!errorProduct.password) {
-      return res.status(400).json({ errorMessage: '비밀번호를 입력하세요' });
-    } else if (error.name === 'CastError') {
-      return res
-        .status(404)
-        .json({ status: 404, errorMessage: '존재하지 않는 상품입니다' });
-    }
-    return res.status(500).json({
-      status: 500,
-      errorMessage:
-        '예상치 못한 에러가 발생했습니다. 관리자에게 문의해 주세요.',
-    });
+    next(error);
   }
 });
 
 //삭제
-router.delete('/:productId', async (req, res) => {
+router.delete('/:productId', async (req, res, next) => {
   try {
     const editId = req.params.productId;
     const deleteProduct = await deleteProductSchema.validateAsync(req.body);
@@ -241,18 +172,14 @@ router.delete('/:productId', async (req, res) => {
     const productItem = await Products.findById(editId).exec();
 
     if (!productItem) {
-      return res
-        .status(404)
-        .json({ status: 404, errorMessage: '존재하지 않는 상품입니다' });
+      throw new SyntaxError('존재하지 않는 상품입니다.');
     }
 
     const salt = productItem.salt;
     const password = await compareHashedPassword(plainPassword, salt);
 
     if (password != productItem.password) {
-      return res
-        .status(401)
-        .json({ status: 401, errorMessage: '비밀번호가 일치하지 않습니다.' });
+      throw new SyntaxError('비밀번호가 일치하지 않습니다.');
     }
 
     await productItem.deleteOne({ _id: editId }).exec();
@@ -263,22 +190,7 @@ router.delete('/:productId', async (req, res) => {
       data: productItem,
     });
   } catch (error) {
-    console.error(error);
-    const errorProduct = req.body;
-    if (!errorProduct.password) {
-      return res
-        .status(400)
-        .json({ status: 400, errorMessage: '비밀번호를 입력하세요' });
-    } else if (error.name === 'CastError') {
-      return res
-        .status(404)
-        .json({ status: 404, errorMessage: '존재하지 않는 상품입니다' });
-    }
-    return res.status(500).json({
-      status: 500,
-      errorMessage:
-        '예상치 못한 에러가 발생했습니다. 관리자에게 문의해 주세요.',
-    });
+    next(error);
   }
 });
 
