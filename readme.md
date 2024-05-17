@@ -10,42 +10,280 @@ express.js, MongoDB를 이용하여, 상품 정보를 등록, 조회, 수정, �
 |상품|상품 수정 (U)|PUT|/products/:id|O|O|
 |상품|상품 삭제 (D)|DELETE|/products/:id|O|O|
 
+### 0. 공통
+#### 1) Response-Success
+|이름|타입|설명|
+|---|---|---|
+|status|number|HTTP Status Code|
+|message|string|API 호출 성공 메시지|
+|data|Object|API 호출 결과 데이터|
+
+```
+{
+  "status": 201,
+  "message": "상품 생성에 성공했습니다.",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "name": "페레로로쉐",
+    "description": "맛있는 초콜렛",
+    "manager": "스파르탄",
+    "status": "FOR_SALE",
+    "createdAt": "2024-05-01T05:11:06.285Z",
+    "updatedAt": "2024-05-01T05:11:06.285Z", 
+  }
+}
+```
+
+#### 2) Response-Failure
+|이름|타입|설명|
+|---|---|---|
+|status|number|HTTP Status Code|
+|message|string|API 호출 실패 메시지|
+
+|status|message|설명|
+|---|---|---|
+|400|상품명을 입력해주세요|상품명이 빈 문자열일 경우 or 빠져있을 경우
+|400|상품명은 문자열이어야 합니다|상품명이 다른 형태로 전달되었을 경우
+|400|상품명은 10글자 이내로 입력해주세요|상품명의 글자수가 조건에 맞지 않을 경우
+|400|상세 정보를 입력해주세요|상세정보가 빈 문자열일 경우 or 빠져있을 경우
+|400|상세 정보는 문자열이어야 합니다|상세정보가 다른 형태로 전달되었을 경우
+|400|상세 정보는 50글자 이내로 입력해주세요|상세정보의 글자수가 조건에 맞지 않을 경우
+|400|관리자명을 입력해주세요|관리자명이 빈 문자열일 경우 or 빠져있을 경우
+|400|관리자명은 문자열이어야 합니다|관리자명이 다른 형태로 전달되었을 경우
+|400|관리자명은 50글자 이내로 입력해주세요|관리자명의 글자수가 조건에 맞지 않을 경우
+|400|비밀번호를 입력해주세요|비밀번호가 빈 문자열일 경우 or 빠져있을 경우
+|400|비밀번호는 문자열이어야 합니다|비밀번호가 다른 형태로 전달되었을 경우
+|400|비밀번호는 4글자 이상 10글자 이하로 입력해주세요|비밀번호의 글자수가 조건에 맞지 않을 경우
+|400|비밀번호는 대소문자, 숫자로만 입력할 수 있습니다|비밀번호에 대소문자, 숫자가 아닌 다른 값이 포함되었을 경우
+|400|비밀번호는 대소문자, 숫자로만 입력할 수 있습니다|비밀번호에 대소문자, 숫자가 아닌 다른 값이 포함되었을 경우
+|404|존재하지 않는 상품입니다|조회, 수정, 삭제 시 id에 해당하는 데이터가 존재하지 않을 경우
+|401|비밀번호가 일치하지 않습니다|수정, 삭제 시 비밀번호가 일치하지 않을 경우
+|500|서버에서 에러가 발생하였습니다.|그 외 에러
+
+
 ### 1. POST - 상품 등록
-상품의 이름, 상세설명, 관리자, 비밀번호를 req로 받아 MongoDB에 저장되도록 한다.
+#### 1) Response - Body
+|이름|타입|필수 여부|설명|
+|---|---|---|---|
+|name|string|n|상품명|
+|description|string|n|상세 정보|
+|manager|string|n|관리자|
+|password|string|y|비밀번호|
 
-이 때, 상품의 비밀번호는 암호화되어 DB에 저장된다.
+```
+{
+  "name": "페레로로쉐",
+  "description": "맛있는 초콜렛",
+  "manager": "스파르탄",
+  "password": "spartan!!123"
+}
+```
 
-이 때 이름, 상세설명, 관리자, 비밀번호 모두 필수 요소이며, 하나라도 전달받지 못할 경우 에러메시지를 반환한다.
+#### 2) Response - Success
+|이름|타입|설명|
+|---|---|---|
+|status|number|HTTP Status Code|
+|message|string|API 호출 성공 메시지|
+|data|Object|API 호출 결과 데이터|
 
-또한, 상품의 이름이 겹칠 경우 상품이 저장되지 않고 에러메시지를 반환한다.
+|status|message|설명|
+|---|---|---|
+|201|상품 생성에 성공했습니다.|상품이 정상적으로 등록되었을 경우
 
-등록 시 상품의 상태는 자동으로 'FOR_SALE'로 저장되도록 한다.
+```
+{
+  "status": 201,
+  "message": "상품 생성에 성공했습니다.",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "name": "페레로로쉐",
+    "description": "맛있는 초콜렛",
+    "manager": "스파르탄",
+    "status": "FOR_SALE",
+    "createdAt": "2024-05-01T05:11:06.285Z",
+    "updatedAt": "2024-05-01T05:11:06.285Z", 
+  }
+}
+```
 
-상품의 등록일시는 등록하는 시점의 날짜와 시간으로 자동 저장되며, 수정일시는 등록일시와 같은 값을 가진다.
-
-상품의 ID는 따로 입력받지 않고, MongoDB에서 자동으로 생성되는 id를 이용한다.
 
 ### 2. GET - 상품 목록 조회
-등록된 상품들의 이름, 상세설명, 관리자, 상태, 등록일시, 수정일시를 모두 res로 반환한다.
+#### 1) Response-Success
+|이름|타입|설명|
+|---|---|---|
+|id|string|상품 ID|
+|name|string|상품명|
+|description|string|상세 정보|
+|manager|string|관리자|
+|status|string|상품 상태|
+|createdAt|Date|생성 일시|
+|updatedAt|Date|생성 일시|
 
-등록된 상품이 없을 경우 빈 배열을 반환한다.
+|status|message|설명|
+|---|---|---|
+|200|상품 목록 조회에 성공했습니다.|상품 조회가 정상적으로 이루어졌을 경우
+
+```
+{
+  "status": 200,
+  "message": "상품 목록 조회에 성공했습니다.",
+  "data": [
+	  {
+	    "id": "507f1f77bcf86cd799439011",
+	    "name": "페레로로쉐",
+	    "description": "맛있는 초콜렛",
+	    "manager": "스파르탄",
+	    "status": "FOR_SALE",
+	    "createdAt": "2024-05-01T05:11:06.285Z",
+	    "updatedAt": "2024-05-01T05:11:06.285Z"
+	  },
+	  {
+	    "id": "507f1f77bcf86cd799439011",
+	    "name": "킨더조이",
+	    "description": "장난감 초콜렛",
+	    "manager": "스파르탄",
+	    "status": "FOR_SALE",
+	    "createdAt": "2024-05-01T05:11:06.285Z",
+	    "updatedAt": "2024-05-01T05:11:06.285Z"
+	  }
+  ]
+}
+```
 
 ### 3. GET - 상품 상세 조회
-req의 params를 통해 상품의 id를 받으면, id에 해당하는 상품에 대한 정보를 res로 반환한다.
+#### 1) Request - Path.parameters
 
-이 때 id에 해당하는 상품이 없으면 에러메시지를 반환한다.
+|이름|타입|설명|
+|---|---|---|
+|id|string|상품 ID|
+
+```
+/products/507f1f77bcf86cd799439011
+```
+#### 2) Response - Success
+|이름|타입|설명|
+|---|---|---|
+|id|string|상품 ID|
+|name|string|상품명|
+|description|string|상세 정보|
+|manager|string|관리자|
+|status|string|상품 상태|
+|createdAt|Date|생성 일시|
+|updatedAt|Date|생성 일시|
+
+```
+{
+  "status": 200,
+  "message": "상품 상세 조회에 성공했습니다.",
+  "data": {
+    "id": "507f1f77bcf86cd799439011",
+    "name": "페레로로쉐",
+    "description": "맛있는 초콜렛",
+    "manager": "스파르탄",
+    "status": "FOR_SALE",
+    "createdAt": "2024-05-01T05:11:06.285Z",
+    "updatedAt": "2024-05-01T05:11:06.285Z"
+  }
+}
+```
 
 ### 4. PUT - 상품 수정
-req의 params를 통해 상품의 id를 받고, body를 통해 상품의 수정 내용과 비밀번호를 받아 해당 상품에 대한 내용이 수정된다.
+#### 1) Request - Path.parameters
 
-이 때 id에 해당하는 상품이 존재하지 않거나, 비밀번호가 상품의 비밀번호와 일치하지 않을 경우 에러메시지를 반환한다.
+|이름|타입|설명|
+|---|---|---|
+|id|string|상품 ID|
 
-또한, 상품의 상태가 'SOLD_OUT' 혹은 'FOR_SALE'이 아닐 경우에도 에러메시지를 반환한다.
+```
+/products/507f1f77bcf86cd799439011
+```
+#### 2) Request - Body
+|이름|타입|필수 여부|설명|
+|---|---|---|---|
+|name|string|n|상품명|
+|description|string|n|상세 정보|
+|manager|string|n|관리자|
+|status|string|n|상품 상태|
+|password|string|y|비밀번호|
+
+```
+{
+  "name": "페레로로쉐",
+  "description": "맛있는 초콜렛",
+  "manager": "스파르탄",
+  "status": "SOLD_OUT",
+  "password": "spartan!!123"
+}
+```
+
+#### 3) Response - Success
+|이름|타입|설명|
+|---|---|---|
+|id|string|상품 ID|
+|name|string|상품명|
+|description|string|상세 정보|
+|manager|string|관리자|
+|status|string|상품 상태|
+|createdAt|Date|생성 일시|
+|updatedAt|Date|생성 일시|
+
+예시
+```
+{
+  "status": 200,
+  "message": "상품 수정에 성공했습니다.",
+  "data": {
+    "id": 1,
+    "name": "페레로로쉐",
+    "description": "맛있는 초콜렛",
+    "manager": "스파르탄",
+    "status": "SOLD_OUT",
+    "createdAt": "2024-05-01T05:11:06.285Z",
+    "updatedAt": "2024-05-01T05:11:06.285Z"
+  }
+}
+```
+
 
 ### 5. DELETE - 상품 삭제
-req의 params를 통해 상품의 id를 받고, body를 통해 비밀번호를 받으면 해당 상품의 데이터가 삭제된다.
+#### 1) Request - Path.parameters
 
-이 때 id에 해당하는 상품이 존재하지 않거나, 비밀번호가 상품의 비밀번호와 일치하지 않을 경우 에러메시지를 반환한다.
+|이름|타입|설명|
+|---|---|---|
+|id|string|상품 ID|
+
+```
+/products/507f1f77bcf86cd799439011
+```
+#### 2) Response - Success
+|이름|타입|설명|
+|---|---|---|
+|id|string|상품 ID|
+|name|string|상품명|
+|description|string|상세 정보|
+|manager|string|관리자|
+|status|string|상품 상태|
+|createdAt|Date|생성 일시|
+|updatedAt|Date|생성 일시|
+
+예시
+```
+{
+  "status": 200,
+  "message": "상품 삭제에 성공했습니다.",
+  "data": {
+    "id": 1,
+    "name": "페레로로쉐",
+    "description": "맛있는 초콜렛",
+    "manager": "스파르탄",
+    "status": "SOLD_OUT",
+    "createdAt": "2024-05-01T05:11:06.285Z",
+    "updatedAt": "2024-05-01T05:11:06.285Z"
+  }
+}
+```
+
+
 
 ## 코드 설명
 ### 1. ./src/crypto
