@@ -17,6 +17,16 @@ router.post('/', async (req, res, next) => {
   try {
     const product = await createProductSchema.validateAsync(req.body);
     const { name, description, manager, password: plainPassword } = product;
+    
+    const productsAll = await Products.find().exec();
+    const productsName = productsAll.map((cur) => {
+      return cur.name;
+    });
+    if (productsName.includes(name)) {
+      throw new SyntaxError('이미 존재하는 상품입니다.');
+    }
+
+
     const { password, salt } = await hashedPassword(plainPassword);
     const createdAt = new Date();
     const updatedAt = createdAt;
