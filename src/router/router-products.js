@@ -27,16 +27,12 @@ router.post('/', async (req, res, next) => {
     }
 
     const { password, salt } = await hashedPassword(plainPassword);
-    const createdAt = new Date();
-    const updatedAt = createdAt;
     const newProduct = new Products({
       name,
       description,
       manager,
       password,
       salt,
-      createdAt,
-      updatedAt,
     });
 
     await newProduct.save();
@@ -68,7 +64,7 @@ router.get('/', async (req, res, next) => {
     const showProducts = productsAll
       .map((cur) => {
         return {
-          id: cur._id,
+          id: cur.id,
           name: cur.name,
           description: cur.description,
           manager: cur.manager,
@@ -98,7 +94,7 @@ router.get('/:productId', async (req, res, next) => {
       throw new SyntaxError('존재하지 않는 상품입니다.');
     }
     const showProductItem = {
-      id: productItem._id,
+      id: productItem.id,
       name: productItem.name,
       description: productItem.description,
       manager: productItem.manager,
