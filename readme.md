@@ -65,9 +65,9 @@ express.js, MongoDB를 이용하여, 상품 정보를 등록, 조회, 수정, �
 #### 1) Response - Body
 |이름|타입|필수 여부|설명|
 |---|---|---|---|
-|name|string|n|상품명|
-|description|string|n|상세 정보|
-|manager|string|n|관리자|
+|name|string|y|상품명|
+|description|string|y|상세 정보|
+|manager|string|y|관리자|
 |password|string|y|비밀번호|
 
 ```
