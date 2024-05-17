@@ -4,11 +4,9 @@ import {
   hashedPassword,
   compareHashedPassword,
 } from '../crypto/crypto-password.js';
-import {
-  createProductSchema,
-  deleteProductSchema,
-  editProductSchema,
-} from './joi-products.js';
+import { createProductSchema } from '../validators/create-product.validator.js';
+import { deleteProductSchema } from '../validators/delete-product.validator.js';
+import { editProductSchema } from '../validators/update-product.validator.js';
 
 const router = express.Router();
 
@@ -146,11 +144,6 @@ router.patch('/:productId', async (req, res, next) => {
       productItem.manager = manager;
     }
     if (status) {
-      if (status != 'FOR_SALE' && status != 'SOLD_OUT') {
-        throw new SyntaxError(
-          '상품 상태는 [FOR_SALE,SOLD_OUT] 중 하나여야 합니다.'
-        );
-      }
       productItem.status = status;
     }
 
