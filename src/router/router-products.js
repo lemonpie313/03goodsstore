@@ -18,11 +18,9 @@ router.post('/', async (req, res, next) => {
     const product = await createProductSchema.validateAsync(req.body);
     const { name, description, manager, password: plainPassword } = product;
 
-    const productsAll = await Products.find().exec();
-    const productsName = productsAll.map((cur) => {
-      return cur.name;
-    });
-    if (productsName.includes(name)) {
+    const productAlready = await Products.findOne({ name });
+
+    if (productAlready) {
       throw new SyntaxError('이미 존재하는 상품입니다.');
     }
 
@@ -189,7 +187,7 @@ router.delete('/:productId', async (req, res, next) => {
       throw new SyntaxError('비밀번호가 일치하지 않습니다.');
     }
 
-    await productItem.deleteOne({ _id: editId }).exec();
+    await productItem.deleteOne().exec();
 
     return res.status(200).send({
       status: 200,
